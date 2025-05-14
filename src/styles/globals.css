@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 bg-primary text-white rounded-md hover:bg-secondary transition-colors;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200 transition-colors;
+  }
+
+  .btn-danger {
+    @apply px-4 py-2 bg-danger text-white rounded-md hover:bg-red-700 transition-colors;
+  }
+
+  .input-field {
+    @apply w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-primary;
+  }
+}

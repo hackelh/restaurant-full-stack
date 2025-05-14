@@ -1,0 +1,19 @@
+.navbar {
+  @apply bg-white shadow-md py-4;
+}
+
+.nav-links {
+  @apply flex space-x-6;
+}
+
+.nav-link {
+  @apply text-gray-600 hover:text-primary transition-colors;
+}
+
+.nav-auth {
+  @apply flex items-center space-x-4;
+}
+
+.nav-button {
+  @apply px-4 py-2 bg-primary text-white rounded hover:bg-secondary transition-colors;
+}
