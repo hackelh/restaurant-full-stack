@@ -172,11 +172,32 @@ const OrdonnanceDetails = () => {
 
         <Card title="Contenu de l'ordonnance" className="col-span-2">
           <div className="bg-gray-50 p-4 rounded-lg">
-            <pre className="whitespace-pre-wrap text-sm">
-              {typeof ordonnance.contenu === 'string'
-                ? ordonnance.contenu
-                : JSON.stringify(ordonnance.contenu, null, 2)}
-            </pre>
+            {ordonnance.contenu.type === 'texte' ? (
+              <div className="prose max-w-none">
+                <p className="text-gray-700 whitespace-pre-wrap">
+                  {ordonnance.contenu.contenuBrut}
+                </p>
+              </div>
+            ) : ordonnance.contenu.type === 'vide' ? (
+              <p className="text-gray-500 italic">Aucun contenu disponible</p>
+            ) : (
+              <div>
+                <h3 className="font-medium mb-4">Type: {ordonnance.contenu.type}</h3>
+                {ordonnance.contenu.medications && (
+                  <div className="mt-4">
+                    <h4 className="font-medium mb-2">Médicaments prescrits:</h4>
+                    <ul className="list-disc pl-5 space-y-2">
+                      {ordonnance.contenu.medications.map((med, index) => (
+                        <li key={index} className="text-gray-700">
+                          {med.nom} - {med.dosage} {med.frequence && `- ${med.frequence}`}
+                          {med.duree && <span className="text-gray-500"> ({med.duree})</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </Card>
 

@@ -16,7 +16,10 @@ const Header = () => {
 
   return (
     <header className="app-header">
-      <Link to="/" className="header-logo">🦷 Allo Dentiste</Link>
+      <Link to="/" className="header-logo flex items-center space-x-2">
+        <img src="/images/logo.png" alt="Logo" className="h-10" />
+        <span className="text-xl font-bold text-white">ALLO DENTISTE</span>
+      </Link>
       <div className="header-user">
         {user ? (
           <>

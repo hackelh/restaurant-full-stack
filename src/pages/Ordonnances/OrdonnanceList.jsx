@@ -26,11 +26,31 @@ const OrdonnanceList = () => {
 
         const ordonnancesData = response.data.data;
         
-        // Vérifier et parser le contenu JSON si nécessaire
-        const processedOrdonnances = ordonnancesData.map(ord => ({
-          ...ord,
-          contenu: typeof ord.contenu === 'string' ? JSON.parse(ord.contenu) : ord.contenu
-        }));
+        // Traiter les ordonnances
+        const processedOrdonnances = ordonnancesData.map(ord => {
+          let processedContenu = ord.contenu;
+
+          // Si le contenu est une chaîne, essayer de le parser comme JSON
+          if (typeof ord.contenu === 'string') {
+            try {
+              processedContenu = JSON.parse(ord.contenu);
+            } catch (parseError) {
+              // Si le parsing échoue, créer un objet avec le texte brut
+              processedContenu = {
+                type: 'texte',
+                contenuBrut: ord.contenu
+              };
+            }
+          } else if (!ord.contenu) {
+            // Si le contenu est null ou undefined
+            processedContenu = {
+              type: 'vide',
+              contenuBrut: ''
+            };
+          }
+
+          return { ...ord, contenu: processedContenu };
+        });
 
         console.log('Ordonnances traitées:', processedOrdonnances);
         setOrdonnances(processedOrdonnances);
@@ -49,7 +69,7 @@ const OrdonnanceList = () => {
 
 
   const filteredOrdonnances = Array.isArray(ordonnances) ? ordonnances.filter(ordonnance => {
-    const contenuObj = typeof ordonnance.contenu === 'string' ? JSON.parse(ordonnance.contenu) : ordonnance.contenu;
+    const contenuObj = ordonnance.contenu;
     const patientNom = ordonnance.Patient?.nom || '';
     const patientPrenom = ordonnance.Patient?.prenom || '';
     const matchesSearch = patientNom.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -122,16 +142,12 @@ const OrdonnanceList = () => {
                     {ordonnance.Patient?.nom} {ordonnance.Patient?.prenom}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {(() => {
-                      try {
-                        const contenuObj = typeof ordonnance.contenu === 'string' 
-                          ? JSON.parse(ordonnance.contenu) 
-                          : ordonnance.contenu;
-                        return `${contenuObj.type} - ${contenuObj.medications?.[0]?.nom || ''}`;
-                      } catch (e) {
-                        return 'Contenu non disponible';
-                      }
-                    })()}
+                    {ordonnance.contenu.type === 'texte' 
+                      ? 'Ordonnance texte libre'
+                      : ordonnance.contenu.type === 'vide'
+                        ? 'Contenu non disponible'
+                        : `${ordonnance.contenu.type || ''} ${ordonnance.contenu.medications?.[0]?.nom || ''}`
+                    }
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full

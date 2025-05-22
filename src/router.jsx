@@ -1,18 +1,29 @@
 import { createBrowserRouter } from 'react-router-dom';
 import Layout from './components/Layout/Layout';
 import Dashboard from './pages/Dashboard/Dashboard';
+import Login from './pages/Auth/Login';
+import Register from './pages/Auth/Register';
+import ErrorPage from './pages/ErrorPage';
+import NotFound from './pages/NotFound/NotFound';
+import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
+
+// Pages de gestion des patients
 import Patients from './pages/Patients/Patients';
 import PatientForm from './pages/Patients/PatientForm';
 import PatientDetails from './pages/Patients/PatientDetails';
+
+// Pages de gestion des rendez-vous
 import AppointmentList from './pages/Appointments/AppointmentList';
 import AppointmentDetails from './pages/Appointments/AppointmentDetails';
 import AppointmentForm from './pages/Appointments/AppointmentForm';
+
+// Pages de gestion des ordonnances
 import OrdonnanceList from './pages/Ordonnances/OrdonnanceList';
 import OrdonnanceForm from './pages/Ordonnances/OrdonnanceForm';
+
+// Pages de planning
 import CalendarView from './pages/Planning/CalendarView';
-import Login from './pages/Auth/Login';
-import Register from './pages/Auth/Register';
-import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
+import EditPlanning from './pages/Planning/EditPlanning';
 
 export const router = createBrowserRouter([
   {
@@ -97,12 +108,29 @@ export const router = createBrowserRouter([
             ]
           },
           {
-            path: '/calendar',
-            element: <CalendarView />
+            path: '/planning',
+            children: [
+              {
+                index: true,
+                element: <CalendarView />
+              },
+              {
+                path: 'edit',
+                element: <EditPlanning />
+              }
+            ]
           }
         ]
       }
     ]
+  },
+  {
+    path: '/error',
+    element: <ErrorPage />
+  },
+  {
+    path: '*',
+    element: <NotFound />
   }
 ], {
   future: {

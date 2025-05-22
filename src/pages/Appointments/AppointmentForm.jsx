@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Card from '../../components/Card/Card';
 import api from '../../services/api';
 
 const AppointmentForm = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [formData, setFormData] = useState({
     patientId: '',
@@ -16,6 +20,34 @@ const AppointmentForm = () => {
     type: '',
     notes: ''
   });
+
+  const fetchAppointment = async () => {
+    try {
+      const response = await api.get(`/appointments/${id}`);
+      const appointmentData = response.data?.data || response.data;
+      
+      if (!appointmentData) {
+        throw new Error('Données du rendez-vous non trouvées');
+      }
+
+      // Convert ISO date to local date and time
+      const date = new Date(appointmentData.date);
+      const localDate = date.toISOString().split('T')[0];
+      const localTime = date.toTimeString().slice(0, 5);
+
+      setFormData({
+        patientId: appointmentData.patient?._id,
+        date: localDate,
+        time: localTime,
+        type: appointmentData.type || 'consultation',
+        notes: appointmentData.notes || ''
+      });
+    } catch (err) {
+      console.error('Erreur lors du chargement du rendez-vous:', err);
+      setError('Erreur lors du chargement du rendez-vous');
+      toast.error('Erreur lors du chargement du rendez-vous');
+    }
+  };
 
   useEffect(() => {
     const fetchPatients = async () => {
@@ -33,11 +65,15 @@ const AppointmentForm = () => {
       }
     };
     fetchPatients();
-  }, []);
+    if (id) {
+      fetchAppointment();
+    }
+  }, [id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setIsSaving(true);
 
     try {
       // Combine date and time
@@ -49,15 +85,26 @@ const AppointmentForm = () => {
         notes: formData.notes || ''
       };
       
-      const response = await api.post('/appointments', appointmentData);
+      let response;
+      if (id) {
+        response = await api.put(`/appointments/${id}`, appointmentData);
+        toast.success('Rendez-vous modifié avec succès');
+      } else {
+        response = await api.post('/appointments', appointmentData);
+        toast.success('Rendez-vous créé avec succès');
+      }
       navigate('/appointments');
     } catch (error) {
       console.error('Erreur lors de l\'enregistrement du rendez-vous:', error);
       
       if (error.response?.status === 409) {
-        setError('Ce créneau est déjà pris. Veuillez choisir un autre horaire (25 minutes avant/après).');
+        const message = 'Ce créneau est déjà pris. Veuillez choisir un autre horaire (25 minutes avant/après).';
+        setError(message);
+        toast.error(message);
       } else {
-        setError(error.response?.data?.message || 'Erreur lors de la création du rendez-vous');
+        const message = error.response?.data?.message || `Erreur lors de ${id ? 'la modification' : 'la création'} du rendez-vous`;
+        setError(message);
+        toast.error(message);
       }
     }
   };
@@ -67,7 +114,9 @@ const AppointmentForm = () => {
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold mb-6">Nouveau Rendez-vous</h1>
+      <h1 className="text-3xl font-bold mb-6">
+        {id ? 'Modifier le rendez-vous' : 'Nouveau rendez-vous'}
+      </h1>
       
       <Card>
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -156,8 +205,12 @@ const AppointmentForm = () => {
             >
               Annuler
             </button>
-            <button type="submit" className="btn-primary">
-              Créer le rendez-vous
+            <button 
+              type="submit" 
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+              disabled={isSaving}
+            >
+              {isSaving ? 'Enregistrement...' : (id ? 'Modifier le rendez-vous' : 'Créer le rendez-vous')}
             </button>
           </div>
         </form>

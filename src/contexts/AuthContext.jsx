@@ -16,7 +16,8 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   }, []);
-
+  
+_
   const checkAuth = async () => {
     try {
       const response = await api.get('/auth/me');
