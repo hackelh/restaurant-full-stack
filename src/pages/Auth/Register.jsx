@@ -77,19 +77,53 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) return;
-
-    setLoading(true);
-    const { success, error } = await register(formData);
     
-    if (success) {
-      toast.success('Inscription réussie ! Vous pouvez maintenant vous connecter.');
-      navigate('/login');
-    } else {
-      toast.error(error || 'Erreur lors de l\'inscription');
+    // Réinitialiser les erreurs
+    setErrors({});
+    
+    // Validation côté client
+    if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+      setErrors(prev => ({
+        ...prev,
+        global: 'Tous les champs sont obligatoires'
+      }));
+      return;
     }
     
-    setLoading(false);
+    if (formData.password !== formData.confirmPassword) {
+      setErrors(prev => ({
+        ...prev,
+        password: 'Les mots de passe ne correspondent pas',
+        confirmPassword: 'Les mots de passe ne correspondent pas'
+      }));
+      return;
+    }
+    
+    setLoading(true);
+    
+    try {
+      const { success, error } = await register(formData);
+      
+      if (success) {
+        toast.success('Inscription réussie ! Vous pouvez maintenant vous connecter.');
+        navigate('/login');
+      } else {
+        setErrors(prev => ({
+          ...prev,
+          global: error || 'Erreur lors de l\'inscription'
+        }));
+        toast.error(error || 'Erreur lors de l\'inscription');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la soumission du formulaire:', error);
+      setErrors(prev => ({
+        ...prev,
+        global: 'Une erreur est survenue. Veuillez réessayer.'
+      }));
+      toast.error('Une erreur est survenue lors de l\'inscription');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const [showPassword, setShowPassword] = useState(false);
@@ -256,20 +290,6 @@ const Register = () => {
                 <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
               )}
             </div>
-
-            <div className="flex items-center">
-              <input
-                id="terms"
-                name="terms"
-                type="checkbox"
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                required
-              />
-              <label htmlFor="terms" className="ml-2 block text-sm text-gray-700">
-                J'accepte les <a href="#" className="text-blue-600 hover:text-blue-500">conditions d'utilisation</a>
-              </label>
-            </div>
-
             <div>
               <button
                 type="submit"

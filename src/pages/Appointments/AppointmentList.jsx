@@ -1,29 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import Card from '../../components/Card/Card';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
+import SearchBar from '../../components/common/SearchBar';
 
 const AppointmentList = () => {
+  const navigate = useNavigate();
   const [appointments, setAppointments] = useState([]);
-  const [filteredAppointments, setFilteredAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filter, setFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const fetchAppointments = async () => {
       try {
+        setLoading(true);
         const response = await api.get('/appointments');
-        const appointmentsData = response.data?.data || [];
-        
-        if (!Array.isArray(appointmentsData)) {
-          console.error('Les données reçues ne sont pas un tableau:', appointmentsData);
-          setAppointments([]);
-        } else {
-          setAppointments(appointmentsData);
-        }
-      } catch (err) {
-        console.error('Erreur lors du chargement des rendez-vous:', err);
+        setAppointments(response.data.data || response.data || []);
+      } catch (error) {
         setError('Erreur lors du chargement des rendez-vous');
       } finally {
         setLoading(false);
@@ -32,142 +26,121 @@ const AppointmentList = () => {
     fetchAppointments();
   }, []);
 
-  useEffect(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const filtered = appointments.filter(appointment => {
-      const appointmentDate = new Date(appointment.date);
-      appointmentDate.setHours(0, 0, 0, 0);
-
-      switch (filter) {
-        case 'today':
-          return appointmentDate.getTime() === today.getTime();
-        case 'upcoming':
-          return appointmentDate >= today;
-        default:
-          return true;
+  const handleDelete = async (id) => {
+    if (window.confirm('Voulez-vous vraiment supprimer ce rendez-vous ?')) {
+      try {
+        await api.delete(`/appointments/${id}`);
+        setAppointments(appointments.filter(app => app.id !== id));
+      } catch (error) {
+        alert('Erreur lors de la suppression du rendez-vous');
       }
-    });
-
-    setFilteredAppointments(filtered);
-  }, [filter, appointments]);
-
-  const getFilterButtonClass = (buttonFilter) => {
-    const baseClass = 'px-4 py-2 rounded-md ';
-    return baseClass + (filter === buttonFilter ? 'bg-primary text-white' : 'bg-gray-100');
+    }
   };
 
-  if (loading) return <div className="p-6">Chargement...</div>;
-  if (error) return <div className="p-6 text-red-500">{error}</div>;
+  const filteredAppointments = appointments.filter(app => {
+    const nom = app.patient?.nom?.toLowerCase() || '';
+    const prenom = app.patient?.prenom?.toLowerCase() || '';
+    return (
+      nom.includes(searchTerm.toLowerCase()) ||
+      prenom.includes(searchTerm.toLowerCase())
+    );
+  });
+
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center min-h-[300px]">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+      <div className="text-blue-500 font-semibold">Chargement des rendez-vous...</div>
+    </div>
+  );
+  if (error) return <div className="text-red-500 text-center p-4">{error}</div>;
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Rendez-vous</h1>
-        <Link to="/appointments/new" className="btn-primary">
-          Nouveau Rendez-vous
-        </Link>
+    <div className="p-6 max-w-5xl mx-auto">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+        <h2 className="text-3xl font-bold text-gray-800">Liste des Rendez-vous</h2>
+        <button
+          onClick={() => navigate('/appointments/new')}
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded shadow transition-colors"
+        >
+          <FaPlus /> Nouveau Rendez-vous
+        </button>
       </div>
 
-      <div className="mb-6">
-        <div className="flex space-x-4">
+      <div className="flex gap-4 mb-4">
+        <SearchBar
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Rechercher par nom de patient..."
+        />
+      </div>
+
+      {filteredAppointments.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-lg shadow">
+          <img src="https://cdn-icons-png.flaticon.com/512/4076/4076549.png" alt="Aucun rendez-vous" className="w-24 h-24 mb-4 opacity-60" />
+          <div className="text-gray-500 text-lg mb-4">Aucun rendez-vous trouvé</div>
           <button
-            className={getFilterButtonClass('all')}
-            onClick={() => setFilter('all')}
+            onClick={() => navigate('/appointments/new')}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2 rounded shadow transition-colors"
           >
-            Tous
-          </button>
-          <button
-            className={getFilterButtonClass('today')}
-            onClick={() => setFilter('today')}
-          >
-            Aujourd'hui
-          </button>
-          <button
-            className={getFilterButtonClass('upcoming')}
-            onClick={() => setFilter('upcoming')}
-          >
-            À venir
+            <FaPlus /> Créer un rendez-vous
           </button>
         </div>
-      </div>
-
-      <Card>
-        <div className="overflow-x-auto">
-          <table className="min-w-full">
+      ) : (
+        <div className="overflow-x-auto bg-white rounded-lg shadow">
+          <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Heure
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Patient
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Statut
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Actions
-                </th>
+                <th className="p-4 text-left text-sm font-semibold text-gray-600">Patient</th>
+                <th className="p-4 text-left text-sm font-semibold text-gray-600">Contact</th>
+                <th className="p-4 text-left text-sm font-semibold text-gray-600">Date</th>
+                <th className="p-4 text-left text-sm font-semibold text-gray-600">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody>
               {filteredAppointments.map((appointment) => (
-                <tr key={appointment.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {new Date(appointment.date).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {new Date(appointment.date).toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm">
-                      <div className="font-medium text-gray-900">
-                        {appointment.Patient?.nom} {appointment.Patient?.prenom}
-                      </div>
-                      <div className="text-gray-500">
-                        {appointment.Patient?.telephone}
-                      </div>
-                      <div className="text-gray-500">
-                        {appointment.Patient?.email}
-                      </div>
+                <tr key={appointment.id} className="border-t hover:bg-blue-50 transition-colors">
+                  <td className="p-4">
+                    <div className="font-medium text-gray-900">
+                      {appointment.patient?.nom} {appointment.patient?.prenom}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {appointment.type}
+                  <td className="p-4">
+                    <div>{appointment.patient?.telephone || '-'}</div>
+                    <div className="text-gray-500 text-sm">{appointment.patient?.email || '-'}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                      ${appointment.status === 'confirmed' ? 'bg-green-100 text-green-800' : 
-                        appointment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                        'bg-red-100 text-red-800'}`}>
-                      {appointment.status}
+                  <td className="p-4">
+                    <span className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-semibold">
+                      {new Date(appointment.date).toLocaleDateString('fr-FR', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <Link
-                      to={`/appointments/${appointment.id}`}
-                      className="text-primary hover:text-secondary mr-4"
+                  <td className="p-4 flex gap-2">
+                    <button
+                      onClick={() => navigate(`/appointments/${appointment.id}/edit`)}
+                      className="flex items-center gap-1 bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded shadow text-sm transition-colors"
+                      title="Modifier"
                     >
-                      Détails
-                    </Link>
+                      <FaEdit /> Modifier
+                    </button>
+                    <button
+                      onClick={() => handleDelete(appointment.id)}
+                      className="flex items-center gap-1 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded shadow text-sm transition-colors"
+                      title="Supprimer"
+                    >
+                      <FaTrash /> Supprimer
+                    </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </Card>
+      )}
     </div>
   );
 };

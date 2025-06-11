@@ -1,9 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import { 
+  FaEdit, 
+  FaTrash, 
+  FaFilePdf, 
+  FaCheck, 
+  FaTimes,
+  FaSpinner,
+  FaArrowLeft,
+  FaUser,
+  FaPills
+} from 'react-icons/fa';
 import Card from '../../components/Card/Card';
 import api from '../../services/api';
-import { FaEdit, FaTrash, FaFilePdf, FaCheck, FaTimes } from 'react-icons/fa';
 
 const OrdonnanceDetails = () => {
   const { id } = useParams();
@@ -11,50 +21,86 @@ const OrdonnanceDetails = () => {
   const [ordonnance, setOrdonnance] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
 
   useEffect(() => {
-    const fetchOrdonnanceDetails = async () => {
+    const fetchOrdonnance = async () => {
       try {
+        setLoading(true);
         const response = await api.get(`/ordonnances/${id}`);
-        setOrdonnance(response.data.data);
-        setLoading(false);
-      } catch (err) {
-        setError('Erreur lors du chargement des détails de l\'ordonnance');
+        const data = response.data.data || response.data;
+        let contenu = data.contenu;
+        if (typeof contenu === 'string') {
+          try {
+            contenu = JSON.parse(contenu);
+          } catch (e) {
+            contenu = { type: 'texte', contenuBrut: contenu };
+          }
+        } else if (!contenu) {
+          contenu = { type: 'vide', contenuBrut: '' };
+        }
+        setOrdonnance({ ...data, contenu });
+        setError(null);
+      } catch (error) {
+        setError('Erreur lors du chargement de l\'ordonnance');
+      } finally {
         setLoading(false);
       }
     };
-    fetchOrdonnanceDetails();
+    fetchOrdonnance();
   }, [id]);
 
   const handleDelete = async () => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette ordonnance ?')) {
-      try {
-        await api.delete(`/ordonnances/${id}`);
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer définitivement cette ordonnance ?')) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const response = await api.delete(`/api/ordonnances/${id}`);
+      if (response.data.success) {
         toast.success('Ordonnance supprimée avec succès');
         navigate('/ordonnances');
-      } catch (error) {
-        console.error('Erreur lors de la suppression:', error);
-        toast.error('Erreur lors de la suppression de l\'ordonnance');
+      } else {
+        throw new Error(response.data.message || 'Erreur lors de la suppression');
       }
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      const errorMessage = error.response?.data?.message || 'Erreur lors de la suppression';
+      toast.error(errorMessage);
+    } finally {
+      setDeleting(false);
     }
   };
 
   const handleGeneratePDF = async () => {
+    setGeneratingPdf(true);
     try {
-      const response = await api.get(`/ordonnances/${id}/pdf`, { responseType: 'blob' });
+      const response = await api.get(`/api/ordonnances/${id}/pdf`, { 
+        responseType: 'blob',
+        headers: {
+          'Accept': 'application/pdf'
+        }
+      });
+      
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `ordonnance_${id}.pdf`;
+      link.download = `ordonnance-${id}-${new Date().toISOString().split('T')[0]}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      toast.success('PDF généré avec succès');
+      
+      toast.success('PDF téléchargé avec succès');
     } catch (error) {
       console.error('Erreur lors de la génération du PDF:', error);
-      toast.error('Erreur lors de la génération du PDF');
+      const errorMessage = error.response?.data?.message || 'Erreur lors de la génération du PDF';
+      toast.error(errorMessage);
+    } finally {
+      setGeneratingPdf(false);
     }
   };
 
@@ -69,145 +115,159 @@ const OrdonnanceDetails = () => {
     }
   };
 
-  if (loading) return <div className="p-6">Chargement...</div>;
-  if (error) return <div className="p-6 text-red-500">{error}</div>;
-  if (!ordonnance) return <div className="p-6">Ordonnance non trouvée</div>;
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center min-h-[300px]">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+      <div className="text-blue-500 font-semibold">Chargement de l'ordonnance...</div>
+    </div>
+  );
 
+  if (error) return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+      <div className="text-red-500 text-xl mb-4">{error}</div>
+      <button
+        onClick={() => navigate('/ordonnances')}
+        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+      >
+        <FaArrowLeft /> Retour
+      </button>
+    </div>
+  );
+
+  if (!ordonnance) return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-4">
+      <div className="text-gray-500 text-xl mb-4">Ordonnance non trouvée</div>
+      <button
+        onClick={() => navigate('/ordonnances')}
+        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors"
+      >
+        <FaArrowLeft /> Retour
+      </button>
+    </div>
+  );
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  // Normaliser l'accès aux données du patient (avec ou sans majuscule)
+  const patient = ordonnance.Patient || ordonnance.patient || {};
+  
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">
-          Ordonnance du {new Date(ordonnance.date).toLocaleDateString()}
-        </h1>
-        <div className="flex justify-between items-center mt-6">
-          <div className="space-x-2">
-            <button
-              onClick={() => navigate(`/ordonnances/${id}/modifier`)}
-              className="btn-primary"
-            >
-              <FaEdit className="inline mr-2" /> Modifier
-            </button>
-            <button
-              onClick={handleDelete}
-              className="btn-danger"
-            >
-              <FaTrash className="inline mr-2" /> Supprimer
-            </button>
-            <button
-              onClick={handleGeneratePDF}
-              className="btn-secondary"
-            >
-              <FaFilePdf className="inline mr-2" /> Générer PDF
-            </button>
-            {ordonnance.status === 'active' && (
+    <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="mb-6 flex items-center gap-4">
+        <button
+          onClick={() => navigate('/ordonnances')}
+          className="text-gray-600 hover:text-gray-800 flex items-center gap-2"
+        >
+          <FaArrowLeft /> Retour
+        </button>
+        <h1 className="text-2xl font-bold">Détails de l'ordonnance</h1>
+      </div>
+      <div className="bg-white rounded-lg shadow p-6 space-y-4">
+        <div>
+          <p className="text-sm text-gray-500">Patient</p>
+          <p className="font-medium">{patient.nom} {patient.prenom}</p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500">Date</p>
+          <p className="font-medium">{formatDate(ordonnance.date)}</p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500">Statut</p>
+          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+            ${ordonnance.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+            {ordonnance.status}
+          </span>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500">Type</p>
+          <p className="font-medium">
+            {ordonnance.contenu.type === 'texte'
+              ? 'Ordonnance texte libre'
+              : ordonnance.contenu.type === 'vide'
+                ? 'Contenu non disponible'
+                : `${ordonnance.contenu.type || ''} ${ordonnance.contenu.medications?.[0]?.nom || ''}`
+            }
+          </p>
+        </div>
+        <div>
+          <p className="text-sm text-gray-500">Contenu</p>
+          <pre className="bg-gray-50 rounded p-2 text-gray-700 whitespace-pre-wrap">
+            {ordonnance.contenu.contenuBrut || JSON.stringify(ordonnance.contenu, null, 2)}
+          </pre>
+        </div>
+        {ordonnance.notes && (
+          <div>
+            <p className="text-sm text-gray-500">Notes additionnelles</p>
+            <p className="text-gray-700 whitespace-pre-wrap">{ordonnance.notes}</p>
+          </div>
+        )}
+      </div>
+      <div className="mt-6 flex justify-between items-center">
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => navigate(`/ordonnances/${id}/modifier`)}
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
+            disabled={deleting || generatingPdf}
+          >
+            <FaEdit className="mr-2" /> Modifier
+          </button>
+
+          <button
+            onClick={handleDelete}
+            className="flex items-center px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors disabled:opacity-50"
+            disabled={deleting || generatingPdf}
+          >
+            {deleting ? (
               <>
-                <button
-                  onClick={() => handleStatusChange('completed')}
-                  className="btn-success"
-                >
-                  <FaCheck className="inline mr-2" /> Terminer
-                </button>
-                <button
-                  onClick={() => handleStatusChange('cancelled')}
-                  className="btn-warning"
-                >
-                  <FaTimes className="inline mr-2" /> Annuler
-                </button>
+                <FaSpinner className="animate-spin mr-2" /> Suppression...
+              </>
+            ) : (
+              <>
+                <FaTrash className="mr-2" /> Supprimer
               </>
             )}
-          </div>
-          <button
-            onClick={() => navigate('/ordonnances')}
-            className="btn-secondary"
-          >
-            Retour à la liste
           </button>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card title="Informations générales">
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-gray-500">Date de création</p>
-              <p className="font-medium">
-                {new Date(ordonnance.date).toLocaleString()}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Statut</p>
-              <span className={`px-2 py-1 rounded-full text-sm font-semibold
-                ${ordonnance.status === 'active' ? 'bg-green-100 text-green-800' : 
-                  ordonnance.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                  'bg-red-100 text-red-800'}`}>
-                {ordonnance.status === 'active' ? 'Active' :
-                 ordonnance.status === 'completed' ? 'Terminée' : 'Annulée'}
-              </span>
-            </div>
-          </div>
-        </Card>
-
-        <Card title="Patient">
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-gray-500">Nom complet</p>
-              <p className="font-medium">
-                {ordonnance.Patient?.nom} {ordonnance.Patient?.prenom}
-              </p>
-            </div>
-            {ordonnance.Patient?.email && (
-              <div>
-                <p className="text-sm text-gray-500">Email</p>
-                <p>{ordonnance.Patient.email}</p>
-              </div>
-            )}
-            {ordonnance.Patient?.telephone && (
-              <div>
-                <p className="text-sm text-gray-500">Téléphone</p>
-                <p>{ordonnance.Patient.telephone}</p>
-              </div>
-            )}
-          </div>
-        </Card>
-
-        <Card title="Contenu de l'ordonnance" className="col-span-2">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            {ordonnance.contenu.type === 'texte' ? (
-              <div className="prose max-w-none">
-                <p className="text-gray-700 whitespace-pre-wrap">
-                  {ordonnance.contenu.contenuBrut}
-                </p>
-              </div>
-            ) : ordonnance.contenu.type === 'vide' ? (
-              <p className="text-gray-500 italic">Aucun contenu disponible</p>
+          <button
+            onClick={handleGeneratePDF}
+            className="flex items-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors disabled:opacity-50"
+            disabled={deleting || generatingPdf}
+          >
+            {generatingPdf ? (
+              <>
+                <FaSpinner className="animate-spin mr-2" /> Génération...
+              </>
             ) : (
-              <div>
-                <h3 className="font-medium mb-4">Type: {ordonnance.contenu.type}</h3>
-                {ordonnance.contenu.medications && (
-                  <div className="mt-4">
-                    <h4 className="font-medium mb-2">Médicaments prescrits:</h4>
-                    <ul className="list-disc pl-5 space-y-2">
-                      {ordonnance.contenu.medications.map((med, index) => (
-                        <li key={index} className="text-gray-700">
-                          {med.nom} - {med.dosage} {med.frequence && `- ${med.frequence}`}
-                          {med.duree && <span className="text-gray-500"> ({med.duree})</span>}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
+              <>
+                <FaFilePdf className="mr-2" /> Télécharger PDF
+              </>
             )}
-          </div>
-        </Card>
-
-        {ordonnance.notes && (
-          <Card title="Notes additionnelles" className="col-span-2">
-            <p className="text-gray-600 whitespace-pre-wrap">
-              {ordonnance.notes}
-            </p>
-          </Card>
-        )}
+          </button>
+          {ordonnance.status === 'active' && (
+            <>
+              <button
+                onClick={() => handleStatusChange('completed')}
+                className="flex items-center px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors disabled:opacity-50"
+                disabled={deleting || generatingPdf}
+              >
+                <FaCheck className="mr-2" /> Terminer
+              </button>
+              <button
+                onClick={() => handleStatusChange('cancelled')}
+                className="flex items-center px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors disabled:opacity-50"
+                disabled={deleting || generatingPdf}
+              >
+                <FaTimes className="mr-2" /> Annuler
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -38,8 +38,9 @@ function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/patients" element={<Patients />} />
               <Route path="/patients/nouveau" element={<PatientForm />} />
-              <Route path="/patients/:id" element={<PatientDetails />} />
+              <Route path="/patients/:patientId/ordonnances/:ordonnanceId" element={<OrdonnanceDetails />} />
               <Route path="/patients/:id/modifier" element={<PatientForm />} />
+              <Route path="/patients/:id" element={<PatientDetails />} />
               
               {/* Routes Rendez-vous */}
               <Route path="/appointments" element={<AppointmentList />} />
@@ -50,7 +51,6 @@ function App() {
               {/* Routes Ordonnances */}
               <Route path="/ordonnances" element={<OrdonnanceList />} />
               <Route path="/ordonnances/nouvelle" element={<OrdonnanceForm />} />
-              <Route path="/ordonnances/:id" element={<OrdonnanceDetails />} />
               <Route path="/ordonnances/:id/modifier" element={<OrdonnanceForm />} />
               
               {/* Routes Planning */}
