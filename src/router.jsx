@@ -20,6 +20,7 @@ import AppointmentForm from './pages/Appointments/AppointmentForm';
 // Pages de gestion des ordonnances
 import OrdonnanceList from './pages/Ordonnances/OrdonnanceList';
 import OrdonnanceForm from './pages/Ordonnances/OrdonnanceForm';
+import OrdonnanceDetails from './pages/Ordonnances/OrdonnanceDetails';
 
 // Pages de planning
 import CalendarView from './pages/Planning/CalendarView';
@@ -100,6 +101,10 @@ export const router = createBrowserRouter([
               {
                 index: true,
                 element: <OrdonnanceList />
+              },
+              {
+                path: ':id',
+                element: <OrdonnanceDetails />
               },
               {
                 path: 'nouvelle',

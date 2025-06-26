@@ -303,8 +303,8 @@ const PatientList = () => {
                              patient.status === 'archive' ? 'Archivé' : patient.status}
                           </span>
                         </td>
-                        <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                          <div className="flex items-center justify-end space-x-2">
+                        <td className="relative whitespace-nowrap py-4 pl-3 pr-2 text-sm font-medium sm:pr-4">
+                          <div className="flex items-center justify-start space-x-2">
                             <button
                               onClick={() => navigate(`/patients/${patient._id}`)}
                               className="text-blue-600 hover:text-blue-900"

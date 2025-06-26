@@ -7,6 +7,7 @@ const PatientDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [patient, setPatient] = useState(null);
+  const [suivisMedicaux, setSuivisMedicaux] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -29,6 +30,16 @@ const PatientDetails = () => {
         }
         patientData._parsedAdresse = adresse;
         setPatient(patientData);
+        
+        // Récupérer les suivis médicaux
+        try {
+          const suivisResponse = await api.get(`/suivi-medical/patient/${id}`);
+          setSuivisMedicaux(suivisResponse.data.data || suivisResponse.data || []);
+        } catch (suivisError) {
+          console.log('Aucun suivi médical trouvé ou erreur:', suivisError);
+          setSuivisMedicaux([]);
+        }
+        
         setError(null);
       } catch (error) {
         setError('Erreur lors du chargement du patient');
@@ -140,10 +151,45 @@ const PatientDetails = () => {
               <p className="font-medium">{patient.groupeSanguin}</p>
             </div>
           )}
+          {/* Section Traitements en cours */}
+          {Array.isArray(patient.traitementEnCours) && patient.traitementEnCours.length > 0 && (
+            <div>
+              <p className="text-sm text-gray-500">Traitements en cours</p>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {patient.traitementEnCours.map((trait, idx) => (
+                  <span key={idx} className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-semibold">
+                    {trait}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Statut */}
+          {patient.status && (
+            <div>
+              <p className="text-sm text-gray-500">Statut</p>
+              <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold mt-1 ${
+                patient.status === 'actif' ? 'bg-green-100 text-green-800' :
+                patient.status === 'inactif' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-gray-100 text-gray-800'
+              }`}>
+                {patient.status === 'actif' ? 'Actif' :
+                 patient.status === 'inactif' ? 'Inactif' :
+                 patient.status === 'archive' ? 'Archivé' : patient.status}
+              </span>
+            </div>
+          )}
+          {/* Allergies améliorées */}
           {Array.isArray(patient.allergies) && patient.allergies.length > 0 && (
             <div>
               <p className="text-sm text-gray-500">Allergies</p>
-              <p className="font-medium">{patient.allergies.join(', ')}</p>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {patient.allergies.map((allergy, idx) => (
+                  <span key={idx} className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-semibold">
+                    {allergy}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
           {patient.profession && (
@@ -197,6 +243,71 @@ const PatientDetails = () => {
               </div>
             </div>
           )}
+          {/* Section Suivis médicaux */}
+          <div>
+            <h2 className="text-lg font-semibold mb-4">Suivis médicaux</h2>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              {suivisMedicaux.length > 0 ? (
+                <div className="space-y-6">
+                  {suivisMedicaux.map((suivi, index) => (
+                    <div key={suivi.id || index} className="border border-gray-200 rounded-lg p-4 bg-white">
+                      <div className="flex justify-between items-start mb-3">
+                        <h3 className="font-semibold text-blue-600">
+                          Suivi du {new Date(suivi.date).toLocaleDateString('fr-FR', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </h3>
+                        <span className="text-sm text-gray-500">
+                          {new Date(suivi.date).toLocaleTimeString('fr-FR', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                      
+                      {suivi.description && (
+                        <div className="mb-3">
+                          <p className="text-sm text-gray-600 font-medium mb-1">Description</p>
+                          <p className="text-gray-700 whitespace-pre-wrap">{suivi.description}</p>
+                        </div>
+                      )}
+                      
+                      {suivi.traitement && (
+                        <div className="mb-3">
+                          <p className="text-sm text-gray-600 font-medium mb-1">Traitement</p>
+                          <p className="text-gray-700 whitespace-pre-wrap">{suivi.traitement}</p>
+                        </div>
+                      )}
+                      
+                      {suivi.ordonnance && suivi.ordonnance.medicaments && suivi.ordonnance.medicaments.length > 0 && (
+                        <div className="mb-3">
+                          <p className="text-sm text-gray-600 font-medium mb-2">Médicaments prescrits</p>
+                          <div className="flex flex-wrap gap-2">
+                            {suivi.ordonnance.medicaments.map((med, idx) => (
+                              <span key={idx} className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-semibold">
+                                {med}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {suivi.notes && (
+                        <div>
+                          <p className="text-sm text-gray-600 font-medium mb-1">Notes</p>
+                          <p className="text-gray-700 whitespace-pre-wrap text-sm">{suivi.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500">Aucun suivi médical enregistré</p>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import api from '../../services/api';
-import { FaEye, FaPlus } from 'react-icons/fa';
+import { FaEye, FaPlus, FaDownload, FaFilePdf } from 'react-icons/fa';
 import SearchBar from '../../components/common/SearchBar';
 
 const OrdonnanceList = () => {
@@ -105,6 +105,30 @@ const OrdonnanceList = () => {
     return sortable;
   }, [filteredOrdonnances, sortConfig]);
 
+  // Fonction pour télécharger le PDF
+  const handleDownloadPDF = async (ordonnanceId) => {
+    try {
+      const response = await api.get(`/ordonnances/${ordonnanceId}/pdf`, {
+        responseType: 'blob'
+      });
+      
+      // Créer un lien de téléchargement
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `ordonnance_${ordonnanceId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('PDF téléchargé avec succès');
+    } catch (error) {
+      console.error('Erreur lors du téléchargement du PDF:', error);
+      toast.error('Erreur lors du téléchargement du PDF');
+    }
+  };
+
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-[300px]">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
@@ -133,16 +157,7 @@ const OrdonnanceList = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Rechercher par nom de patient..."
         />
-        <select
-          className="input-field w-48"
-          value={selectedStatus}
-          onChange={(e) => setSelectedStatus(e.target.value)}
-        >
-          <option value="">Tous les statuts</option>
-          <option value="active">Active</option>
-          <option value="completed">Terminée</option>
-          <option value="cancelled">Annulée</option>
-        </select>
+
       </div>
 
       {filteredOrdonnances.length === 0 ? (
@@ -219,14 +234,17 @@ const OrdonnanceList = () => {
                           }
                         </td>
 
-                        <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                          <Link
-                            to={`/patients/${ordonnance.patientId}/ordonnances/${ordonnance.id}`}
-                            className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
-                            title="Voir les détails"
-                          >
-                            <FaEye /> Voir
-                          </Link>
+                        <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-center text-sm font-medium sm:pr-6">
+                          <div className="flex items-center justify-start space-x-2">
+                            <Link
+                              to={`/ordonnances/${ordonnance.id}`}
+                              className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
+                              title="Voir les détails"
+                            >
+                              <FaEye /> Voir
+                            </Link>
+
+                          </div>
                         </td>
                       </tr>
                     ))}

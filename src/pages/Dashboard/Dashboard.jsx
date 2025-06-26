@@ -3,6 +3,7 @@ import Card from '../../components/Card/Card';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { UserGroupIcon, CalendarIcon, DocumentTextIcon, ArrowPathIcon, ClockIcon, UserIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import Clock from '../../components/common/Clock';
 import api from '../../services/api';
 
 const Dashboard = () => {
@@ -66,11 +67,20 @@ const Dashboard = () => {
 
   return (
     <motion.div className="p-6 bg-gradient-to-br from-blue-50 to-white min-h-screen">
-      <motion.h1 className="text-4xl font-extrabold mb-10 text-gray-800 tracking-tight text-center">
-        <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-green-400 drop-shadow-lg">
-          Tableau de bord
-        </span>
-      </motion.h1>
+      <motion.div className="flex flex-col md:flex-row justify-between items-center mb-10">
+        <motion.h1 className="text-4xl font-extrabold text-gray-800 tracking-tight text-center md:text-left">
+          <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-green-400 drop-shadow-lg">
+            Tableau de bord
+          </span>
+        </motion.h1>
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Clock />
+        </motion.div>
+      </motion.div>
       {/* Actions rapides */}
       <div className="mb-10 flex flex-col md:flex-row justify-center gap-6">
         <motion.div whileHover={{ scale: 1.07 }} whileTap={{ scale: 0.97 }}>

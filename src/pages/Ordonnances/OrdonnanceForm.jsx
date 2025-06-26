@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Card from '../../components/Card/Card';
+import { FaFilePdf, FaDownload } from 'react-icons/fa';
 import api from '../../services/api';
 
 const OrdonnanceForm = () => {
@@ -84,6 +85,38 @@ const OrdonnanceForm = () => {
     }
   };
 
+  // Fonction pour générer et télécharger le PDF
+  const handleGeneratePDF = async () => {
+    if (!formData.patientId) {
+      toast.error('Veuillez sélectionner un patient avant de générer le PDF');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await api.get(`/ordonnances/${id}/pdf`, {
+        responseType: 'blob'
+      });
+      
+      // Créer un lien de téléchargement
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `ordonnance_${id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('PDF généré et téléchargé avec succès');
+    } catch (error) {
+      console.error('Erreur lors de la génération du PDF:', error);
+      toast.error('Erreur lors de la génération du PDF');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) return <div className="p-6">Chargement...</div>;
   if (error) return <div className="p-6 text-red-500">{error}</div>;
 
@@ -149,6 +182,16 @@ const OrdonnanceForm = () => {
             >
               {loading ? 'Enregistrement...' : (isEditing ? 'Mettre à jour' : 'Créer l\'ordonnance')}
             </button>
+            {isEditing && (
+              <button
+                type="button"
+                onClick={handleGeneratePDF}
+                disabled={loading}
+                className="btn-secondary flex items-center gap-2"
+              >
+                <FaFilePdf /> Générer PDF
+              </button>
+            )}
             <button
               type="button"
               className="btn-secondary"

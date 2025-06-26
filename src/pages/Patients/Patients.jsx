@@ -92,7 +92,8 @@ const Patients = () => {
       await api.delete(`/patients/${id}`);
       setPatients((prev) => prev.filter((p) => p.id !== id));
     } catch (err) {
-      alert('Erreur lors de la suppression du patient');
+      const errorMessage = err.response?.data?.message || 'Erreur lors de la suppression du patient';
+      alert(errorMessage);
     }
   };
 
@@ -198,8 +199,8 @@ const Patients = () => {
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">{patient.prenom}</td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">{patient.email || '-'}</td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-900">{patient.telephone || '-'}</td>
-                        <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                          <div className="flex items-center gap-2 justify-end">
+                        <td className="relative whitespace-nowrap py-4 pl-3 pr-2 text-sm font-medium">
+                          <div className="flex items-center gap-2 justify-start">
                             <button
                               onClick={() => navigate(`/patients/${patient.id}`)}
                               className="text-blue-600 hover:text-blue-800 flex items-center gap-1"

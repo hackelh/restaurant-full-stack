@@ -58,7 +58,9 @@ const OrdonnanceDetails = () => {
 
     setDeleting(true);
     try {
-      const response = await api.delete(`/api/ordonnances/${id}`);
+      console.log('Tentative de suppression de l\'ordonnance:', id);
+      const response = await api.delete(`/ordonnances/${id}`);
+      console.log('Réponse suppression:', response);
       if (response.data.success) {
         toast.success('Ordonnance supprimée avec succès');
         navigate('/ordonnances');
@@ -67,6 +69,7 @@ const OrdonnanceDetails = () => {
       }
     } catch (error) {
       console.error('Erreur lors de la suppression:', error);
+      console.error('Détails de l\'erreur:', error.response?.data);
       const errorMessage = error.response?.data?.message || 'Erreur lors de la suppression';
       toast.error(errorMessage);
     } finally {
@@ -77,12 +80,14 @@ const OrdonnanceDetails = () => {
   const handleGeneratePDF = async () => {
     setGeneratingPdf(true);
     try {
-      const response = await api.get(`/api/ordonnances/${id}/pdf`, { 
+      console.log('Tentative de génération PDF pour l\'ordonnance:', id);
+      const response = await api.get(`/ordonnances/${id}/pdf`, { 
         responseType: 'blob',
         headers: {
           'Accept': 'application/pdf'
         }
       });
+      console.log('Réponse PDF:', response);
       
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
@@ -97,6 +102,7 @@ const OrdonnanceDetails = () => {
       toast.success('PDF téléchargé avec succès');
     } catch (error) {
       console.error('Erreur lors de la génération du PDF:', error);
+      console.error('Détails de l\'erreur PDF:', error.response?.data);
       const errorMessage = error.response?.data?.message || 'Erreur lors de la génération du PDF';
       toast.error(errorMessage);
     } finally {
@@ -106,9 +112,21 @@ const OrdonnanceDetails = () => {
 
   const handleStatusChange = async (status) => {
     try {
-      await api.patch(`/ordonnances/${id}`, { status });
+      await api.patch(`/ordonnances/${id}/status`, { status });
       toast.success('Statut mis à jour avec succès');
-      navigate('/ordonnances');
+      const response = await api.get(`/ordonnances/${id}`);
+      const data = response.data.data || response.data;
+      let contenu = data.contenu;
+      if (typeof contenu === 'string') {
+        try {
+          contenu = JSON.parse(contenu);
+        } catch (e) {
+          contenu = { type: 'texte', contenuBrut: contenu };
+        }
+      } else if (!contenu) {
+        contenu = { type: 'vide', contenuBrut: '' };
+      }
+      setOrdonnance({ ...data, contenu });
     } catch (error) {
       console.error('Erreur lors de la mise à jour du statut:', error);
       toast.error('Erreur lors de la mise à jour du statut');
@@ -154,6 +172,26 @@ const OrdonnanceDetails = () => {
     });
   };
 
+  // Fonction pour traduire les statuts
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'active': return 'Active';
+      case 'completed': return 'Terminée';
+      case 'cancelled': return 'Annulée';
+      default: return status;
+    }
+  };
+
+  // Fonction pour obtenir la couleur du statut
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'completed': return 'bg-blue-100 text-blue-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   // Normaliser l'accès aux données du patient (avec ou sans majuscule)
   const patient = ordonnance.Patient || ordonnance.patient || {};
   
@@ -179,9 +217,8 @@ const OrdonnanceDetails = () => {
         </div>
         <div>
           <p className="text-sm text-gray-500">Statut</p>
-          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-            ${ordonnance.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-            {ordonnance.status}
+          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(ordonnance.status)}`}>
+            {getStatusLabel(ordonnance.status)}
           </span>
         </div>
         <div>
@@ -249,6 +286,8 @@ const OrdonnanceDetails = () => {
               </>
             )}
           </button>
+          
+          {/* Boutons de statut selon l'état actuel */}
           {ordonnance.status === 'active' && (
             <>
               <button
@@ -266,6 +305,26 @@ const OrdonnanceDetails = () => {
                 <FaTimes className="mr-2" /> Annuler
               </button>
             </>
+          )}
+          
+          {ordonnance.status === 'completed' && (
+            <button
+              onClick={() => handleStatusChange('active')}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
+              disabled={deleting || generatingPdf}
+            >
+              <FaCheck className="mr-2" /> Réactiver
+            </button>
+          )}
+          
+          {ordonnance.status === 'cancelled' && (
+            <button
+              onClick={() => handleStatusChange('active')}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
+              disabled={deleting || generatingPdf}
+            >
+              <FaCheck className="mr-2" /> Réactiver
+            </button>
           )}
         </div>
       </div>
