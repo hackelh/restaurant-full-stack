@@ -9,6 +9,8 @@ const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [editingStatusId, setEditingStatusId] = useState(null);
+  const [newStatus, setNewStatus] = useState('');
 
   const fetchDashboardData = async () => {
     if (refreshing) return;
@@ -29,6 +31,30 @@ const Dashboard = () => {
     const interval = setInterval(fetchDashboardData, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // Fonction pour mettre à jour le statut
+  const handleStatusUpdate = async (appointmentId) => {
+    if (!newStatus) return;
+    try {
+      await api.put(`/appointments/${appointmentId}/status`, { status: newStatus });
+      setEditingStatusId(null);
+      setNewStatus('');
+      fetchDashboardData();
+    } catch (err) {
+      alert('Erreur lors de la mise à jour du statut');
+    }
+  };
+
+  // Fonction utilitaire pour traduire les statuts
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'pending': return 'En attente';
+      case 'confirmed': return 'Confirmé';
+      case 'done': return 'Terminé';
+      case 'cancelled': return 'Annulé';
+      default: return status;
+    }
+  };
 
   if (loading || !stats) {
     return (
@@ -61,7 +87,7 @@ const Dashboard = () => {
         </motion.div>
       </div>
       {/* Statistiques principales */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
         <motion.div>
           <Card className="bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-shadow duration-300 p-8 flex flex-col items-center border-t-4 border-blue-500">
             <div className="bg-blue-100 p-5 rounded-full mb-5">
@@ -88,43 +114,9 @@ const Dashboard = () => {
             </div>
           </Card>
         </motion.div>
-        <motion.div>
-          <Card className="bg-white rounded-2xl shadow-xl hover:shadow-2xl transition-shadow duration-300 p-8 flex flex-col items-center border-t-4 border-purple-500">
-            <div className="bg-purple-100 p-5 rounded-full mb-5">
-              <DocumentTextIcon className="w-10 h-10 text-purple-600" />
-            </div>
-            <div className="text-5xl font-extrabold text-purple-600 mb-2 drop-shadow">{stats.monthlyPrescriptions}</div>
-            <h3 className="text-xl font-semibold text-gray-700">Prescriptions ce mois</h3>
-            <div className="text-base text-gray-500 mt-2 flex items-center">
-              <CheckCircleIcon className="w-5 h-5 mr-2" />
-              {stats.monthlyPrescriptions} émises
-            </div>
-          </Card>
-        </motion.div>
+
       </div>
-      {/* Statistiques détaillées */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-        <Card className="bg-white rounded-2xl shadow-lg p-6">
-          <h3 className="text-lg font-bold mb-4 text-blue-700">Statistiques par statut</h3>
-          <div className="flex flex-wrap gap-3">
-            {Object.entries(stats.statsByStatus || {}).map(([status, count]) => (
-              <span key={status} className="inline-flex items-center px-4 py-2 rounded-full bg-blue-100 text-blue-700 font-semibold text-sm shadow">
-                {status} : <span className="ml-2 text-blue-900 font-bold">{count}</span>
-              </span>
-            ))}
-          </div>
-        </Card>
-        <Card className="bg-white rounded-2xl shadow-lg p-6">
-          <h3 className="text-lg font-bold mb-4 text-green-700">Statistiques par type</h3>
-          <div className="flex flex-wrap gap-3">
-            {Object.entries(stats.statsByType || {}).map(([type, count]) => (
-              <span key={type} className="inline-flex items-center px-4 py-2 rounded-full bg-green-100 text-green-700 font-semibold text-sm shadow">
-                {type} : <span className="ml-2 text-green-900 font-bold">{count}</span>
-              </span>
-            ))}
-          </div>
-        </Card>
-      </div>
+         
       {/* Rendez-vous d'aujourd'hui */}
       <div className="bg-white rounded-2xl shadow-lg p-8">
         <div className="flex justify-between items-center mb-6">
@@ -161,51 +153,93 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
-                {stats.todayAppointments.map((appointment) => (
-                  <tr key={appointment.id} className="hover:bg-blue-50">
-                    <td className="px-6 py-4 whitespace-nowrap font-semibold text-blue-700">
-                      {new Date(appointment.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-base text-gray-900 font-semibold">
-                        {appointment.patient?.prenom} {appointment.patient?.nom}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {appointment.patient?.email}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-green-100 text-green-700">
-                        {appointment.type}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full ${
-                        appointment.status === 'confirmed' ? 'bg-blue-100 text-blue-700' :
-                        appointment.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-red-100 text-red-700'
-                      }`}>
-                        {appointment.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex space-x-2">
-                        <Link
-                          to={`/appointments/${appointment.id}`}
-                          className="text-blue-600 hover:text-blue-800 font-semibold"
-                        >
-                          Détails
-                        </Link>
-                        <Link
-                          to={`/appointments/${appointment.id}/edit`}
-                          className="text-green-600 hover:text-green-800 font-semibold"
-                        >
-                          Modifier
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {stats.todayAppointments.map((appointment) => {
+                  const now = new Date();
+                  const rdvDate = new Date(appointment.date);
+                  const diffMinutes = (rdvDate - now) / 60000;
+                  let rowClass = '';
+                  if (rdvDate < now) rowClass = 'bg-red-50 text-gray-400';
+                  else if (diffMinutes <= 20) rowClass = 'bg-yellow-50';
+                  return (
+                    <tr key={appointment.id} className={`hover:bg-blue-50 ${rowClass}`}>
+                      <td className="px-6 py-4 whitespace-nowrap font-semibold text-blue-700">
+                        {rdvDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-base text-gray-900 font-semibold">
+                          {appointment.patient?.prenom || 'Inconnu'} {appointment.patient?.nom}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {appointment.patient?.email}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-green-100 text-green-700">
+                          {appointment.type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full ${
+                          appointment.status === 'confirmed' ? 'bg-blue-100 text-blue-700' :
+                          appointment.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                          appointment.status === 'done' ? 'bg-green-100 text-green-700' :
+                          'bg-red-100 text-red-700'
+                        }`}>{getStatusLabel(appointment.status)}</span>
+                        {/* Formulaire inline pour modifier le statut si l'heure est passée */}
+                        {rdvDate < now && (
+                          editingStatusId === appointment.id ? (
+                            <span className="ml-2 flex items-center gap-2">
+                              <select
+                                className="border rounded px-2 py-1 text-xs"
+                                value={newStatus}
+                                onChange={e => setNewStatus(e.target.value)}
+                              >
+                                <option value="">Choisir...</option>
+                                <option value="done">Terminé</option>
+                                <option value="cancelled">Annulé</option>
+                                <option value="confirmed">Confirmé</option>
+                              </select>
+                              <button
+                                className="px-2 py-1 bg-green-500 text-white rounded text-xs font-semibold hover:bg-green-600"
+                                onClick={() => handleStatusUpdate(appointment.id)}
+                                type="button"
+                              >Valider</button>
+                              <button
+                                className="px-2 py-1 bg-gray-300 text-gray-700 rounded text-xs font-semibold hover:bg-gray-400"
+                                onClick={() => { setEditingStatusId(null); setNewStatus(''); }}
+                                type="button"
+                              >Annuler</button>
+                            </span>
+                          ) : (
+                            <button
+                              className="ml-2 px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs font-semibold hover:bg-blue-300 transition"
+                              onClick={() => { setEditingStatusId(appointment.id); setNewStatus(''); }}
+                              type="button"
+                            >
+                              Modifier statut
+                            </button>
+                          )
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex space-x-2">
+                          <Link
+                            to={`/appointments/${appointment.id}`}
+                            className="text-blue-600 hover:text-blue-800 font-semibold"
+                          >
+                            Détails
+                          </Link>
+                          <Link
+                            to={`/appointments/${appointment.id}/edit`}
+                            className="text-green-600 hover:text-green-800 font-semibold"
+                          >
+                            Modifier
+                          </Link>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

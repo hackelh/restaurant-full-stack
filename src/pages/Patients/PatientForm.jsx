@@ -45,29 +45,85 @@ const PatientForm = () => {
       const fetchPatient = async () => {
         try {
           setLoading(true);
+          console.log('Chargement du patient avec id:', id);
           const response = await api.get(`/patients/${id}`);
-          const data = response.data;
+          console.log('Réponse API patient:', response.data);
+          const data = response.data.data;
+          const defaultAdresse = {
+            rue: '',
+            complementAdresse: '',
+            codePostal: '',
+            ville: '',
+            pays: 'France'
+          };
+          let adresse = defaultAdresse;
+          if (typeof data.adresse === 'string') {
+            try {
+              adresse = { ...defaultAdresse, ...JSON.parse(data.adresse) };
+            } catch {
+              adresse = defaultAdresse;
+            }
+          } else if (typeof data.adresse === 'object' && data.adresse !== null) {
+            adresse = { ...defaultAdresse, ...data.adresse };
+          }
+          let dateNaissance = '';
+          if (data.dateNaissance) {
+            const d = new Date(data.dateNaissance);
+            if (!isNaN(d)) {
+              dateNaissance = d.toISOString().slice(0, 10);
+            }
+          }
           setFormData({
-            ...data,
-            adresse: {
-              rue: '',
-              complementAdresse: '',
-              codePostal: '',
-              ville: '',
-              pays: 'France',
-              ...(typeof data.adresse === 'string'
-                ? (() => { try { return JSON.parse(data.adresse); } catch { return {}; } })()
-                : data.adresse || {})
-            },
-            allergies: Array.isArray(data.allergies) ? data.allergies : [],
-            traitementEnCours: Array.isArray(data.traitementEnCours) ? data.traitementEnCours : [],
-            antecedentsMedicaux: Array.isArray(data.antecedentsMedicaux) ? data.antecedentsMedicaux : [],
+            nom: data.nom || '',
+            prenom: data.prenom || '',
+            email: data.email || '',
+            telephone: data.telephone || '',
+            adresse,
+            dateNaissance,
+            numeroSecu: data.numeroSecu || '',
+            dentisteId: data.dentisteId || user?.id,
             groupeSanguin: data.groupeSanguin || '',
+            allergies: Array.isArray(data.allergies)
+              ? data.allergies
+              : (typeof data.allergies === 'string' && data.allergies.trim() !== ''
+                  ? (() => { 
+                      try { 
+                        const parsed = JSON.parse(data.allergies);
+                        return Array.isArray(parsed) ? parsed : [];
+                      } catch { 
+                        return []; 
+                      } 
+                    })()
+                  : []),
             profession: data.profession || '',
             fumeur: typeof data.fumeur === 'boolean' ? data.fumeur : false,
             remarques: data.remarques || '',
             notesMedicales: data.notesMedicales || '',
+            traitementEnCours: Array.isArray(data.traitementEnCours)
+              ? data.traitementEnCours
+              : (typeof data.traitementEnCours === 'string' && data.traitementEnCours.trim() !== ''
+                  ? (() => { 
+                      try { 
+                        const parsed = JSON.parse(data.traitementEnCours);
+                        return Array.isArray(parsed) ? parsed : [];
+                      } catch { 
+                        return []; 
+                      } 
+                    })()
+                  : []),
             status: data.status || 'actif',
+            antecedentsMedicaux: Array.isArray(data.antecedentsMedicaux)
+              ? data.antecedentsMedicaux
+              : (typeof data.antecedentsMedicaux === 'string' && data.antecedentsMedicaux.trim() !== ''
+                  ? (() => { 
+                      try { 
+                        const parsed = JSON.parse(data.antecedentsMedicaux);
+                        return Array.isArray(parsed) ? parsed : [];
+                      } catch { 
+                        return []; 
+                      } 
+                    })()
+                  : []),
           });
         } catch (err) {
           console.error('Erreur lors du chargement du patient:', err);
@@ -394,19 +450,19 @@ const PatientForm = () => {
               if (formData._allergyInput && formData._allergyInput.trim() !== '') {
                 setFormData(prev => ({
                   ...prev,
-                  allergies: [...(prev.allergies || []), prev._allergyInput],
+                  allergies: [...(Array.isArray(prev.allergies) ? prev.allergies : []), prev._allergyInput],
                   _allergyInput: ''
                 }));
               }
             }} className="bg-blue-500 text-white px-3 py-1 rounded">Ajouter</button>
           </div>
           <div className="flex flex-wrap gap-2">
-            {(formData.allergies || []).map((allergy, idx) => (
+            {(Array.isArray(formData.allergies) ? formData.allergies : []).map((allergy, idx) => (
               <span key={idx} className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs flex items-center gap-1">
                 {allergy}
                 <button type="button" onClick={() => setFormData(prev => ({
                   ...prev,
-                  allergies: prev.allergies.filter((_, i) => i !== idx)
+                  allergies: (Array.isArray(prev.allergies) ? prev.allergies : []).filter((_, i) => i !== idx)
                 }))} className="ml-1 text-red-500">&times;</button>
               </span>
             ))}
@@ -473,19 +529,19 @@ const PatientForm = () => {
               if (formData._traitementInput && formData._traitementInput.trim() !== '') {
                 setFormData(prev => ({
                   ...prev,
-                  traitementEnCours: [...(prev.traitementEnCours || []), prev._traitementInput],
+                  traitementEnCours: [...(Array.isArray(prev.traitementEnCours) ? prev.traitementEnCours : []), prev._traitementInput],
                   _traitementInput: ''
                 }));
               }
             }} className="bg-blue-500 text-white px-3 py-1 rounded">Ajouter</button>
           </div>
           <div className="flex flex-wrap gap-2">
-            {(formData.traitementEnCours || []).map((trait, idx) => (
+            {(Array.isArray(formData.traitementEnCours) ? formData.traitementEnCours : []).map((trait, idx) => (
               <span key={idx} className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs flex items-center gap-1">
                 {trait}
                 <button type="button" onClick={() => setFormData(prev => ({
                   ...prev,
-                  traitementEnCours: prev.traitementEnCours.filter((_, i) => i !== idx)
+                  traitementEnCours: (Array.isArray(prev.traitementEnCours) ? prev.traitementEnCours : []).filter((_, i) => i !== idx)
                 }))} className="ml-1 text-red-500">&times;</button>
               </span>
             ))}
@@ -527,7 +583,7 @@ const PatientForm = () => {
               if (formData._antType && formData._antType.trim() !== '') {
                 setFormData(prev => ({
                   ...prev,
-                  antecedentsMedicaux: [...(prev.antecedentsMedicaux || []), {
+                  antecedentsMedicaux: [...(Array.isArray(prev.antecedentsMedicaux) ? prev.antecedentsMedicaux : []), {
                     type: prev._antType,
                     description: prev._antDesc || ''
                   }],
@@ -538,14 +594,14 @@ const PatientForm = () => {
             }} className="bg-blue-500 text-white px-3 py-1 rounded">Ajouter</button>
           </div>
           <div className="flex flex-col gap-2">
-            {(formData.antecedentsMedicaux || []).map((ant, idx) => (
+            {(Array.isArray(formData.antecedentsMedicaux) ? formData.antecedentsMedicaux : []).map((ant, idx) => (
               <div key={idx} className="bg-gray-100 px-3 py-2 rounded flex items-center justify-between">
                 <div>
                   <span className="font-medium">{ant.type}</span> : <span className="text-gray-700">{ant.description}</span>
                 </div>
                 <button type="button" onClick={() => setFormData(prev => ({
                   ...prev,
-                  antecedentsMedicaux: prev.antecedentsMedicaux.filter((_, i) => i !== idx)
+                  antecedentsMedicaux: (Array.isArray(prev.antecedentsMedicaux) ? prev.antecedentsMedicaux : []).filter((_, i) => i !== idx)
                 }))} className="ml-2 text-red-500">&times;</button>
               </div>
             ))}

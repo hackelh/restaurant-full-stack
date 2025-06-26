@@ -197,17 +197,7 @@ const OrdonnanceList = () => {
                           )}
                         </div>
                       </th>
-                      <th
-                        className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 cursor-pointer"
-                        onClick={() => requestSort('status')}
-                      >
-                        <div className="flex items-center">
-                          Statut
-                          {sortConfig.key === 'status' && (
-                            <span className="ml-1">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>
-                          )}
-                        </div>
-                      </th>
+
                       <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Actions</th>
                     </tr>
                   </thead>
@@ -228,16 +218,7 @@ const OrdonnanceList = () => {
                               : `${ordonnance.contenu.type || ''} ${ordonnance.contenu.medications?.[0]?.nom || ''}`
                           }
                         </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            ordonnance.status === 'active' ? 'bg-green-100 text-green-800' :
-                            ordonnance.status === 'completed' ? 'bg-gray-100 text-gray-800' :
-                            ordonnance.status === 'cancelled' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {ordonnance.status}
-                          </span>
-                        </td>
+
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                           <Link
                             to={`/patients/${ordonnance.patientId}/ordonnances/${ordonnance.id}`}

@@ -110,6 +110,8 @@ const CalendarView = () => {
           <tbody>
             {workHours.map(hour => {
               const appointment = getAppointmentForTimeSlot(currentDate, hour);
+              const isPastTime = isTimeInPast(currentDate, hour);
+              
               return (
                 <tr key={hour} className="border-b">
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -123,6 +125,8 @@ const CalendarView = () => {
                         </p>
                         <p className="text-sm text-gray-600">{appointment.type}</p>
                       </div>
+                    ) : isPastTime ? (
+                      <span className="text-gray-400 text-sm">Heure passée</span>
                     ) : (
                       <Link
                         to={`/appointments/new?date=${currentDate.toISOString()}&hour=${hour}`}
@@ -171,6 +175,9 @@ const CalendarView = () => {
                 </td>
                 {weekDays.map(day => {
                   const appointment = getAppointmentForTimeSlot(day, hour);
+                  const isPastTime = isTimeInPast(day, hour);
+                  const isWeekend = day.getDay() === 0; // Dimanche
+                  
                   return (
                     <td key={day.toISOString()} className="px-6 py-4">
                       {appointment ? (
@@ -180,6 +187,10 @@ const CalendarView = () => {
                           </p>
                           <p className="text-xs text-gray-600">{appointment.type}</p>
                         </div>
+                      ) : isPastTime ? (
+                        <span className="text-gray-400 text-xs">Passé</span>
+                      ) : isWeekend ? (
+                        <span className="text-gray-400 text-xs">Fermé</span>
                       ) : (
                         <Link
                           to={`/appointments/new?date=${day.toISOString()}&hour=${hour}`}
@@ -197,6 +208,15 @@ const CalendarView = () => {
         </table>
       </div>
     );
+  };
+
+  // Fonction pour vérifier si une heure est dans le passé
+  const isTimeInPast = (date, hour) => {
+    const now = new Date();
+    const checkDate = new Date(date);
+    checkDate.setHours(hour, 0, 0, 0);
+    
+    return checkDate <= now;
   };
 
   if (loading) return <div className="p-6">Chargement...</div>;

@@ -49,7 +49,7 @@ export const router = createBrowserRouter([
             element: <Dashboard />
           },
           {
-            path: '/patients',
+            path: 'patients',
             children: [
               {
                 index: true,
@@ -65,6 +65,10 @@ export const router = createBrowserRouter([
               },
               {
                 path: ':id/modifier',
+                element: <PatientForm />
+              },
+              {
+                path: ':id/edit',
                 element: <PatientForm />
               }
             ]
