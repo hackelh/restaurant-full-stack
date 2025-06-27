@@ -4,10 +4,12 @@ import { toast } from 'react-toastify';
 import Card from '../../components/Card/Card';
 import { FaFilePdf, FaDownload } from 'react-icons/fa';
 import api from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 const OrdonnanceForm = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     patientId: '',
     contenu: '',
@@ -66,13 +68,23 @@ const OrdonnanceForm = () => {
     setLoading(true);
     setError(null);
 
+    // Ajoute des logs pour le debug
+    console.log('User:', user);
+
+    // Ajoute dentisteId dans le payload
+    const payload = {
+      ...formData,
+      dentisteId: user?.id,
+    };
+    console.log('Payload envoyé:', payload);
+
     try {
       let response;
       if (isEditing) {
-        response = await api.put(`/ordonnances/${id}`, formData);
+        response = await api.put(`/ordonnances/${id}`, payload);
         toast.success('Ordonnance mise à jour avec succès');
       } else {
-        response = await api.post('/ordonnances', formData);
+        response = await api.post('/ordonnances', payload);
         toast.success('Ordonnance créée avec succès');
       }
       navigate('/ordonnances');

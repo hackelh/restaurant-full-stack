@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { UserCircleIcon, EnvelopeIcon, PhoneIcon, PlusIcon,MagnifyingGlassIcon,PencilSquareIcon,EyeIcon,TrashIcon,FunnelIcon,UserPlusIcon} from '@heroicons/react/24/outline';
+import { UserCircleIcon, EnvelopeIcon, PhoneIcon, PlusIcon, MagnifyingGlassIcon, PencilSquareIcon, EyeIcon, TrashIcon, FunnelIcon, UserPlusIcon } from '@heroicons/react/24/outline';
 import api from '../../services/api';
 import SearchBar from '../../components/common/SearchBar';
 
@@ -33,11 +33,9 @@ const PatientList = () => {
     }
   };
 
-  // Filtrer et trier les patients
   useEffect(() => {
     let result = [...patients];
     
-    // Appliquer la recherche
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       result = result.filter(patient => 
@@ -48,12 +46,10 @@ const PatientList = () => {
       );
     }
     
-    // Appliquer le filtre de statut
     if (selectedStatus !== 'all') {
       result = result.filter(patient => patient.status === selectedStatus);
     }
     
-    // Trier les résultats
     if (sortConfig.key) {
       result.sort((a, b) => {
         if (a[sortConfig.key] < b[sortConfig.key]) {
@@ -135,11 +131,9 @@ const PatientList = () => {
         </div>
       </div>
 
-      {/* Filtres et recherche */}
       <div className="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
         <div className="px-4 py-5 sm:p-6">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {/* Barre de recherche */}
             <div className="lg:col-span-2">
               <label htmlFor="search" className="block text-sm font-medium text-gray-700">
                 Rechercher un patient
@@ -151,7 +145,6 @@ const PatientList = () => {
               />
             </div>
 
-            {/* Filtre par statut */}
             <div>
               <label htmlFor="status" className="block text-sm font-medium text-gray-700">
                 Statut
@@ -169,7 +162,6 @@ const PatientList = () => {
               </select>
             </div>
 
-            {/* Bouton d'export */}
             <div className="flex items-end">
               <button
                 type="button"
@@ -185,7 +177,6 @@ const PatientList = () => {
         </div>
       </div>
 
-      {/* Liste des patients */}
       <div className="mt-8 flex flex-col">
         <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
           <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
@@ -338,9 +329,7 @@ const PatientList = () => {
         </div>
       </div>
       
-      {/* Statistiques rapides */}
       <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Carte statistique - Total Patients */}
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
             <div className="flex items-center">
@@ -363,7 +352,6 @@ const PatientList = () => {
           </div>
         </div>
 
-        {/* Carte statistique - Nouveaux ce mois-ci */}
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="px-4 py-5 sm:p-6">
             <div className="flex items-center">
@@ -389,8 +377,6 @@ const PatientList = () => {
             </div>
           </div>
         </div>
-
-        {/* Autres cartes statistiques... */}
       </div>
     </div>
   );

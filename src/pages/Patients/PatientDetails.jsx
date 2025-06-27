@@ -1,25 +1,31 @@
+// Importation des dépendances React, hooks, services et icônes
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaEdit } from 'react-icons/fa';
 import api from '../../services/api';
 
+// Composant principal pour l'affichage détaillé d'un patient
 const PatientDetails = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const [patient, setPatient] = useState(null);
-  const [suivisMedicaux, setSuivisMedicaux] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { id } = useParams(); // Récupère l'id du patient depuis l'URL
+  const navigate = useNavigate(); // Hook pour la navigation
+  // États pour la gestion du patient, des suivis médicaux, du chargement et des erreurs
+  const [patient, setPatient] = useState(null); // Données du patient
+  const [suivisMedicaux, setSuivisMedicaux] = useState([]); // Liste des suivis médicaux
+  const [loading, setLoading] = useState(true); // Indicateur de chargement
+  const [error, setError] = useState(null); // Message d'erreur éventuel
 
+  // Chargement des données du patient et de ses suivis médicaux
   useEffect(() => {
     const fetchPatient = async () => {
       try {
         setLoading(true);
         const response = await api.get(`/patients/${id}`);
         const patientData = response.data.data || response.data;
+        // Sécurise le format des antécédents médicaux
         if (!Array.isArray(patientData.antecedentsMedicaux)) {
           patientData.antecedentsMedicaux = [];
         }
+        // Parse l'adresse si besoin
         let adresse = patientData.adresse;
         if (typeof adresse === 'string') {
           try {
@@ -31,7 +37,7 @@ const PatientDetails = () => {
         patientData._parsedAdresse = adresse;
         setPatient(patientData);
         
-        // Récupérer les suivis médicaux
+        // Récupère les suivis médicaux du patient
         try {
           const suivisResponse = await api.get(`/suivi-medical/patient/${id}`);
           setSuivisMedicaux(suivisResponse.data.data || suivisResponse.data || []);
@@ -50,6 +56,7 @@ const PatientDetails = () => {
     fetchPatient();
   }, [id]);
 
+  // Affichage d'un loader pendant le chargement
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-[300px]">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
@@ -57,6 +64,7 @@ const PatientDetails = () => {
     </div>
   );
 
+  // Affichage d'une erreur si besoin
   if (error) return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
       <div className="text-red-500 text-xl mb-4">{error}</div>
@@ -69,6 +77,7 @@ const PatientDetails = () => {
     </div>
   );
 
+  // Affichage si aucun patient trouvé
   if (!patient) return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
       <div className="text-gray-500 text-xl mb-4">Patient non trouvé</div>
@@ -81,10 +90,13 @@ const PatientDetails = () => {
     </div>
   );
 
+  // Récupère l'adresse parsée
   const adresse = patient._parsedAdresse || {};
 
+  // Rendu principal des détails du patient
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
+      {/* En-tête et bouton modifier */}
       <div className="mb-6 flex items-center gap-4 justify-between">
         <div className="flex items-center gap-4">
           <button
@@ -104,6 +116,7 @@ const PatientDetails = () => {
       </div>
       <div className="bg-white rounded-lg shadow p-6">
         <div className="space-y-4">
+          {/* Informations de base du patient */}
           <div>
             <p className="text-sm text-gray-500">Nom complet</p>
             <p className="font-medium">{patient.nom} {patient.prenom}</p>
@@ -132,6 +145,7 @@ const PatientDetails = () => {
               <p className="font-medium">{new Date(patient.dateNaissance).toLocaleDateString()}</p>
             </div>
           )}
+          {/* Adresse complète */}
           {adresse && (adresse.rue || adresse.ville || adresse.codePostal || adresse.pays) && (
             <div>
               <p className="text-sm text-gray-500">Adresse</p>
@@ -151,7 +165,7 @@ const PatientDetails = () => {
               <p className="font-medium">{patient.groupeSanguin}</p>
             </div>
           )}
-          {/* Section Traitements en cours */}
+          {/* Traitements en cours (badges) */}
           {Array.isArray(patient.traitementEnCours) && patient.traitementEnCours.length > 0 && (
             <div>
               <p className="text-sm text-gray-500">Traitements en cours</p>
@@ -164,7 +178,7 @@ const PatientDetails = () => {
               </div>
             </div>
           )}
-          {/* Statut */}
+          {/* Statut du patient (badge coloré) */}
           {patient.status && (
             <div>
               <p className="text-sm text-gray-500">Statut</p>
@@ -179,7 +193,7 @@ const PatientDetails = () => {
               </span>
             </div>
           )}
-          {/* Allergies améliorées */}
+          {/* Allergies (badges) */}
           {Array.isArray(patient.allergies) && patient.allergies.length > 0 && (
             <div>
               <p className="text-sm text-gray-500">Allergies</p>
@@ -198,11 +212,12 @@ const PatientDetails = () => {
               <p className="font-medium">{patient.profession}</p>
             </div>
           )}
+          {/* Fumeur */}
           <div>
             <p className="text-sm text-gray-500">Fumeur</p>
             <p className="font-medium">{patient.fumeur ? 'Oui' : 'Non'}</p>
           </div>
-          {/* Section Antécédents médicaux */}
+          {/* Antécédents médicaux (liste détaillée) */}
           <div>
             <h2 className="text-lg font-semibold mb-4">Antécédents médicaux</h2>
             <div className="bg-gray-50 p-4 rounded-lg">
@@ -225,7 +240,7 @@ const PatientDetails = () => {
               )}
             </div>
           </div>
-          {/* Section Notes médicales */}
+          {/* Notes médicales */}
           {patient.notesMedicales && (
             <div>
               <h2 className="text-lg font-semibold mb-4">Notes médicales</h2>
@@ -234,7 +249,7 @@ const PatientDetails = () => {
               </div>
             </div>
           )}
-          {/* Section Remarques */}
+          {/* Remarques */}
           {patient.remarques && (
             <div>
               <h2 className="text-lg font-semibold mb-4">Remarques</h2>
@@ -243,7 +258,7 @@ const PatientDetails = () => {
               </div>
             </div>
           )}
-          {/* Section Suivis médicaux */}
+          {/* Suivis médicaux (liste détaillée) */}
           <div>
             <h2 className="text-lg font-semibold mb-4">Suivis médicaux</h2>
             <div className="bg-gray-50 p-4 rounded-lg">
